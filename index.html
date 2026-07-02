@@ -1,387 +1,449 @@
-import React, { useState } from 'react';
-import { Shield, Crosshair, Flag, Zap, AlertTriangle, ArrowRight, Maximize, Activity, Lock, Target } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newman Girls - Tactical Hub</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-// --- DATA CONSTANTS ---
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-const ZONES = {
-  red: {
-    id: 'red',
-    title: 'THE FORTRESS',
-    subtitle: 'RED',
-    color: 'bg-red-600',
-    textColor: 'text-red-500',
-    activeBg: 'bg-red-600/40',
-    inactiveBg: 'bg-red-900/20 hover:bg-red-900/40',
-    position: 'left-0 w-[40%]', // Try to 10m (40m)
-    mindset: 'WAIT & EXIT',
-    territory: 'Own Try Line to Own 10m Line',
-    objective: 'Clean Exit. Set a strong platform. Risk-averse.',
-    lineout: '6+1 (Maul/Fake)',
-    rules: [
-      'NO FORCED ERRORS: Do not play wide; no 50/50 passes.',
-      'Set a strong platform with low-risk forward carries.',
-      'Wait for the right moment to exit via box kick or clearance.'
-    ]
-  },
-  amber: {
-    id: 'amber',
-    title: 'THE BATTLEGROUND',
-    subtitle: 'TRANSITION',
-    color: 'bg-amber-500',
-    textColor: 'text-amber-500',
-    activeBg: 'bg-amber-500/40',
-    inactiveBg: 'bg-amber-900/20 hover:bg-amber-900/40',
-    position: 'left-[40%] w-[38%]', // 10m to Opp 22m (38m)
-    mindset: 'PREPARE & TRANSITION',
-    territory: 'Own 10m Line to Opposition 22m',
-    objective: 'Force Errors & Transition quickly from defense to attack.',
-    lineout: '5-Man (U, T, N)',
-    rules: [
-      'Defend aggressively to force a knock-on or penalty.',
-      'Kick to compete (box kicks/high balls) to cause chaos.',
-      'Once possession is won, transition quickly to attack.'
-    ]
-  },
-  green: {
-    id: 'green',
-    title: 'THE KILL ZONE',
-    subtitle: 'KILL',
-    color: 'bg-emerald-500',
-    textColor: 'text-emerald-500',
-    activeBg: 'bg-emerald-500/40',
-    inactiveBg: 'bg-emerald-900/20 hover:bg-emerald-900/40',
-    position: 'left-[78%] w-[22%]', // Opp 22m to Try (22m)
-    mindset: 'EXECUTE RUTHLESSLY',
-    territory: 'Opposition 22m to Try Line',
-    objective: 'POINTS (Try or Penalty). Secure possession first.',
-    lineout: '4-Man (Freddie)',
-    rules: [
-      'NO FORCED ERRORS: Do not rush the score. Keep the ball.',
-      'Red 5: Tight "Pick and Go" carries to suck in defenders.',
-      'Attack the Edge: Use width if they narrow up.',
-      'If defense holds, take the 3 points or pin them in the corner.'
-    ]
-  }
-};
+    <style>
+        /* Custom Animations */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: slideUpFade 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-zinc-950 font-sans selection:bg-red-600/30 text-white pb-24">
 
-const HANNIBAL_ROLES = [
-  {
-    name: 'THE GUARD',
-    position: '1st Defender / Pillar',
-    icon: Lock,
-    jobs: [
-      'Guard the immediate ruck fringes and call the "Lift".',
-      'The Insurance: If ball goes wide, run the "Flag Line" straight to the corner flag.'
-    ]
-  },
-  {
-    name: 'THE WOLF',
-    position: '4th Defender (Inside Center Channel)',
-    icon: Target,
-    jobs: [
-      'Aggression. Do not wait.',
-      'Ignore dummy runners and HUNT the "Ace" (opposition playmaker).',
-      'Completely shut down their ability to move the ball wide.'
-    ]
-  },
-  {
-    name: 'THE SCOUT',
-    position: 'Last Defender / Edge',
-    icon: Crosshair,
-    jobs: [
-      'Stand WIDE. Dictate the line speed for the whole team.',
-      'Show the sideline to deny the step back inside.',
-      'Force them to pass under pressure or cut back into the Wolf.'
-    ]
-  },
-  {
-    name: 'PENDULUM BACKFIELD',
-    position: '9, 10, 15',
-    icon: Maximize,
-    jobs: [
-      '9: Sweeps shallow to clean up chip kicks or line breaks.',
-      '10 & 15: Operate a deep pendulum to cover long kicks.',
-      'Do not shoot up early—prevents exposing the Kill Zone behind the line.'
-    ]
-  }
-];
-
-// --- COMPONENTS ---
-
-const PitchMapVisual = ({ activeZone, setActiveZone }) => {
-  return (
-    <div className="w-full bg-[#0a0a0c] border border-zinc-800/80 rounded-xl p-6 md:p-10 flex flex-col items-center relative overflow-hidden shadow-2xl">
-      <div className="w-full max-w-5xl relative h-48 md:h-72 rounded-sm flex overflow-hidden bg-[#171a21] border-2 border-zinc-700/80 shadow-inner">
-        
-        {/* Interactive Zones overlaying the accurate pitch */}
-        {Object.values(ZONES).map((zone) => (
-          <div
-            key={zone.id}
-            onClick={() => setActiveZone(zone.id)}
-            className={`
-              absolute top-0 h-full cursor-pointer transition-all duration-500 ease-in-out
-              ${zone.position}
-              ${activeZone === zone.id ? zone.activeBg : zone.inactiveBg}
-              flex flex-col items-center justify-center text-center
-              ${activeZone === zone.id ? 'z-10' : 'z-0'}
-            `}
-          >
-            {/* Active Indicator Top Bar */}
-            <div className={`absolute top-0 w-full h-1.5 transition-all duration-300 ${activeZone === zone.id ? zone.color : 'bg-transparent'}`} />
-            
-            {/* Zone Text Label */}
-            <span className={`
-              text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300
-              ${activeZone === zone.id ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] scale-110' : `${zone.textColor} opacity-80`}
-              bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm
-            `}>
-              {zone.subtitle}
-            </span>
-          </div>
-        ))}
-
-        {/* Real Rugby Pitch Markings - Overlayed on top */}
-        <div className="absolute inset-0 pointer-events-none z-20">
-          {/* Horizontal 5m and 15m dashed lines */}
-          <div className="absolute top-[10%] left-0 w-full border-b-2 border-dashed border-white/20"></div>
-          <div className="absolute top-[25%] left-0 w-full border-b-2 border-dashed border-white/20"></div>
-          <div className="absolute bottom-[25%] left-0 w-full border-t-2 border-dashed border-white/20"></div>
-          <div className="absolute bottom-[10%] left-0 w-full border-t-2 border-dashed border-white/20"></div>
-          
-          {/* Vertical Lines & Labels */}
-          {/* Own Try Line */}
-          <div className="absolute left-0 top-0 h-full border-l-4 border-white/50"></div>
-          <span className="absolute left-3 bottom-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Try Line</span>
-          {/* Left Goal Post (H shape) */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 md:w-6 h-12 md:h-16 opacity-70">
-            <div className="absolute top-0 w-full h-[3px] bg-white rounded-full"></div>
-            <div className="absolute bottom-0 w-full h-[3px] bg-white rounded-full"></div>
-            <div className="absolute left-1/2 top-0 h-full w-[3px] bg-white -translate-x-1/2"></div>
-          </div>
-
-          {/* Own 22m */}
-          <div className="absolute left-[22%] top-0 h-full border-l-2 border-white/40"></div>
-          <span className="absolute left-[22%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">22m</span>
-
-          {/* Own 10m */}
-          <div className="absolute left-[40%] top-0 h-full border-l-2 border-dashed border-white/40"></div>
-          <span className="absolute left-[40%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">10m</span>
-
-          {/* Halfway */}
-          <div className="absolute left-[50%] top-0 h-full border-l-[3px] border-white/50"></div>
-          <span className="absolute left-[50%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Halfway</span>
-
-          {/* Opp 10m */}
-          <div className="absolute left-[60%] top-0 h-full border-l-2 border-dashed border-white/40"></div>
-          <span className="absolute left-[60%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">10m</span>
-
-          {/* Opp 22m */}
-          <div className="absolute left-[78%] top-0 h-full border-l-2 border-white/40"></div>
-          <span className="absolute left-[78%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">22m</span>
-
-          {/* Opp Try Line */}
-          <div className="absolute right-0 top-0 h-full border-r-4 border-white/50"></div>
-          <span className="absolute right-3 bottom-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Try Line</span>
-          {/* Right Goal Post (H shape) */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 md:w-6 h-12 md:h-16 opacity-70">
-            <div className="absolute top-0 w-full h-[3px] bg-white rounded-full"></div>
-            <div className="absolute bottom-0 w-full h-[3px] bg-white rounded-full"></div>
-            <div className="absolute left-1/2 top-0 h-full w-[3px] bg-white -translate-x-1/2"></div>
-          </div>
-        </div>
-      </div>
-      <p className="text-zinc-500 text-xs mt-8 uppercase tracking-[0.2em] font-medium">Select a zone to view tactical objectives</p>
-    </div>
-  );
-};
-
-const ZoneDetails = ({ activeZone }) => {
-  const zone = ZONES[activeZone];
-  
-  return (
-    <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4 mb-6">
-        <div className={`w-3 h-12 ${zone.color}`}></div>
-        <div>
-          <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">{zone.title}</h2>
-          <p className={`${zone.textColor} font-bold tracking-widest text-sm md:text-base`}>{zone.territory}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-12">
-        {/* Left Column: Core Objective */}
-        <div className="col-span-1 space-y-6">
-          <div className="bg-zinc-900/50 p-6 border-t border-zinc-800">
-            <h3 className="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">Mindset</h3>
-            <p className="text-white text-xl font-bold">{zone.mindset}</p>
-          </div>
-          <div className="bg-zinc-900/50 p-6 border-t border-zinc-800">
-            <h3 className="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">Primary Objective</h3>
-            <p className="text-zinc-300 leading-relaxed">{zone.objective}</p>
-          </div>
-          <div className="bg-zinc-900/50 p-6 border-t border-zinc-800">
-            <h3 className="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
-              <Flag size={14} className={zone.textColor} /> Lineout Call
-            </h3>
-            <p className="text-white font-bold">{zone.lineout}</p>
-          </div>
-        </div>
-
-        {/* Right Column: Tactics & Rules */}
-        <div className="col-span-1 md:col-span-2">
-          <h3 className="text-zinc-400 text-sm font-bold tracking-widest uppercase mb-6 border-b border-zinc-800 pb-2">
-            Tactical Execution
-          </h3>
-          <ul className="space-y-4">
-            {zone.rules.map((rule, idx) => (
-              <li key={idx} className="flex gap-4 p-4 bg-zinc-900/30 hover:bg-zinc-900/80 transition-colors border-l-2 border-transparent hover:border-zinc-700">
-                <ArrowRight className={`${zone.textColor} shrink-0 mt-1`} size={18} />
-                <span className="text-zinc-300 text-sm md:text-base">{rule}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const HannibalDefense = () => {
-  return (
-    <div className="w-full animate-in fade-in duration-500 space-y-12">
-      {/* Intro Section */}
-      <div className="flex flex-col md:flex-row gap-8 items-start">
-        <div className="w-full md:w-1/3">
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase mb-2">THE HANNIBAL</h2>
-          <p className="text-red-600 font-bold tracking-widest text-sm mb-6">DEFENSIVE PLAYBOOK</p>
-          <p className="text-zinc-400 leading-relaxed text-sm">
-            Inspired by the Battle of Cannae. We do not honey-pot around the ruck. 
-            We set up wide, defend from the outside-in, and force the attack back into the heavy traffic in the middle of the pitch.
-          </p>
-        </div>
-        
-        {/* Golden Rules */}
-        <div className="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-red-950/20 border border-red-900/30 p-6">
-            <h4 className="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 1</h4>
-            <p className="text-white font-semibold text-sm">Defend the OUTSIDE SHOULDER.</p>
-          </div>
-          <div className="bg-red-950/20 border border-red-900/30 p-6">
-            <h4 className="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 2</h4>
-            <p className="text-white font-semibold text-sm">Line speed is dictated entirely by the SCOUT.</p>
-          </div>
-          <div className="bg-red-950/20 border border-red-900/30 p-6">
-            <h4 className="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 3</h4>
-            <p className="text-white font-semibold text-sm">Stop the wrap-around, force them back inside.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Role Clarity */}
-      <div>
-        <h3 className="text-zinc-400 text-sm font-bold tracking-widest uppercase mb-6 border-b border-zinc-800 pb-2">
-          Role Clarity & Responsibilities
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {HANNIBAL_ROLES.map((role, idx) => {
-            const Icon = role.icon;
-            return (
-              <div key={idx} className="bg-zinc-900 p-6 border-t-2 border-zinc-800 hover:border-red-600 transition-colors group">
-                <div className="flex items-center gap-3 mb-4">
-                  <Icon className="text-zinc-500 group-hover:text-red-600 transition-colors" size={24} />
-                  <div>
-                    <h4 className="text-white font-bold tracking-wider uppercase">{role.name}</h4>
-                    <p className="text-zinc-500 text-xs">{role.position}</p>
-                  </div>
+    <!-- Header & Navigation -->
+    <nav class="w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="bg-red-600 text-white font-black text-xl w-10 h-10 flex items-center justify-center rounded-sm">N</div>
+                <div>
+                    <h1 class="text-white font-bold tracking-widest text-sm uppercase">Newman Girls</h1>
+                    <p class="text-zinc-500 text-xs tracking-widest uppercase">Tactical Hub</p>
                 </div>
-                <ul className="space-y-3">
-                  {role.jobs.map((job, jIdx) => (
-                    <li key={jIdx} className="text-zinc-400 text-sm flex gap-2 items-start">
-                      <span className="text-red-600/50 mt-1">•</span> {job}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Common Errors Warning */}
-      <div className="bg-zinc-900/50 border border-zinc-800 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-16 h-16 rounded-full bg-red-600/10 flex items-center justify-center shrink-0">
-          <AlertTriangle className="text-red-500" size={28} />
-        </div>
-        <div>
-          <h4 className="text-white font-bold tracking-widest uppercase mb-2">System Vulnerabilities (Avoid)</h4>
-          <p className="text-zinc-400 text-sm leading-relaxed">
-            <span className="text-zinc-200 font-semibold">Honey-Potting:</span> Getting narrow around the ruck concedes massive edge overlaps. 
-            <span className="text-zinc-200 font-semibold ml-4">Offside Starts:</span> Start legally behind the hindmost foot to read the attack.
-            <span className="text-zinc-200 font-semibold ml-4">Disconnected Wolf:</span> If the Wolf shoots and the Scout stays deep, it creates a fatal dog-leg. Move as a connected wall.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState('pitch'); // 'pitch' | 'defense'
-  const [activeZone, setActiveZone] = useState('amber'); 
-
-  return (
-    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-red-600/30">
-      
-      {/* Header & Navigation */}
-      <nav className="w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-red-600 text-white font-black text-xl w-10 h-10 flex items-center justify-center rounded-sm">N</div>
-            <div>
-              <h1 className="text-white font-bold tracking-widest text-sm uppercase">Newman Girls</h1>
-              <p className="text-zinc-500 text-xs tracking-widest uppercase">Tactical Hub</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-8">
-            <button 
-              onClick={() => setActiveTab('pitch')}
-              className={`text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 
-                ${activeTab === 'pitch' ? 'text-white border-red-600' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
-            >
-              Pitch Map
-            </button>
-            <button 
-              onClick={() => setActiveTab('defense')}
-              className={`text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 
-                ${activeTab === 'defense' ? 'text-white border-red-600' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
-            >
-              Hannibal Def
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-6 py-12 pb-24">
-        {activeTab === 'pitch' ? (
-          <div className="space-y-4">
-            <div className="mb-8">
-              <h2 className="text-zinc-500 font-bold tracking-[0.2em] text-xs uppercase mb-2">Zone Management</h2>
-              <p className="text-zinc-300 max-w-2xl text-sm leading-relaxed">
-                Our traffic light system dictates our speed of play, risk appetite, and tactical approach based on field position. 
-                <span className="text-white font-semibold"> Low Error | High Patience | Ruthless Execution.</span>
-              </p>
             </div>
             
-            <PitchMapVisual activeZone={activeZone} setActiveZone={setActiveZone} />
-            <ZoneDetails activeZone={activeZone} />
-          </div>
-        ) : (
-          <HannibalDefense />
-        )}
-      </main>
+            <div class="flex gap-8">
+                <button id="btn-tab-pitch" onclick="switchTab('pitch')" class="text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-white border-red-600">
+                    Pitch Map
+                </button>
+                <button id="btn-tab-defense" onclick="switchTab('defense')" class="text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-zinc-500 border-transparent hover:text-zinc-300">
+                    Hannibal Def
+                </button>
+            </div>
+        </div>
+    </nav>
 
-    </div>
-  );
-}
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        
+        <!-- PITCH MAP TAB -->
+        <div id="tab-pitch" class="space-y-4 animate-fade-in">
+            <div class="mb-8">
+                <h2 class="text-zinc-500 font-bold tracking-[0.2em] text-xs uppercase mb-2">Zone Management</h2>
+                <p class="text-zinc-300 max-w-2xl text-sm leading-relaxed">
+                    Our traffic light system dictates our speed of play, risk appetite, and tactical approach based on field position. 
+                    <span class="text-white font-semibold"> Low Error | High Patience | Ruthless Execution.</span>
+                </p>
+            </div>
+            
+            <!-- Pitch Visual -->
+            <div class="w-full bg-[#0a0a0c] border border-zinc-800/80 rounded-xl p-6 md:p-10 flex flex-col items-center relative overflow-hidden shadow-2xl">
+                <div class="w-full max-w-5xl relative h-48 md:h-72 rounded-sm flex overflow-hidden bg-[#171a21] border-2 border-zinc-700/80 shadow-inner">
+                    
+                    <!-- Clickable Zones -->
+                    <div id="zone-red" onclick="setActiveZone('red')" class="absolute top-0 h-full cursor-pointer transition-all duration-500 ease-in-out left-0 w-[40%] flex flex-col items-center justify-center text-center">
+                        <div id="indicator-red" class="absolute top-0 w-full h-1.5 transition-all duration-300 bg-transparent"></div>
+                        <span id="label-red" class="text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300 bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm text-red-500 opacity-80">RED</span>
+                    </div>
+
+                    <div id="zone-amber" onclick="setActiveZone('amber')" class="absolute top-0 h-full cursor-pointer transition-all duration-500 ease-in-out left-[40%] w-[38%] flex flex-col items-center justify-center text-center">
+                        <div id="indicator-amber" class="absolute top-0 w-full h-1.5 transition-all duration-300 bg-transparent"></div>
+                        <span id="label-amber" class="text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300 bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm text-amber-500 opacity-80">TRANSITION</span>
+                    </div>
+
+                    <div id="zone-green" onclick="setActiveZone('green')" class="absolute top-0 h-full cursor-pointer transition-all duration-500 ease-in-out left-[78%] w-[22%] flex flex-col items-center justify-center text-center">
+                        <div id="indicator-green" class="absolute top-0 w-full h-1.5 transition-all duration-300 bg-transparent"></div>
+                        <span id="label-green" class="text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300 bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm text-emerald-500 opacity-80">KILL</span>
+                    </div>
+
+                    <!-- Real Rugby Pitch Markings - Overlayed on top -->
+                    <div class="absolute inset-0 pointer-events-none z-20">
+                        <!-- Horizontal 5m and 15m dashed lines -->
+                        <div class="absolute top-[10%] left-0 w-full border-b-2 border-dashed border-white/20"></div>
+                        <div class="absolute top-[25%] left-0 w-full border-b-2 border-dashed border-white/20"></div>
+                        <div class="absolute bottom-[25%] left-0 w-full border-t-2 border-dashed border-white/20"></div>
+                        <div class="absolute bottom-[10%] left-0 w-full border-t-2 border-dashed border-white/20"></div>
+                        
+                        <!-- Vertical Lines & Labels -->
+                        <!-- Own Try Line -->
+                        <div class="absolute left-0 top-0 h-full border-l-4 border-white/50"></div>
+                        <span class="absolute left-3 bottom-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Try Line</span>
+                        
+                        <!-- Left Goal Post (H shape) -->
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 md:w-6 h-12 md:h-16 opacity-70">
+                            <div class="absolute top-0 w-full h-[3px] bg-white rounded-full"></div>
+                            <div class="absolute bottom-0 w-full h-[3px] bg-white rounded-full"></div>
+                            <div class="absolute left-1/2 top-0 h-full w-[3px] bg-white -translate-x-1/2"></div>
+                        </div>
+
+                        <!-- Own 22m -->
+                        <div class="absolute left-[22%] top-0 h-full border-l-2 border-white/40"></div>
+                        <span class="absolute left-[22%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">22m</span>
+
+                        <!-- Own 10m -->
+                        <div class="absolute left-[40%] top-0 h-full border-l-2 border-dashed border-white/40"></div>
+                        <span class="absolute left-[40%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">10m</span>
+
+                        <!-- Halfway -->
+                        <div class="absolute left-[50%] top-0 h-full border-l-[3px] border-white/50"></div>
+                        <span class="absolute left-[50%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Halfway</span>
+
+                        <!-- Opp 10m -->
+                        <div class="absolute left-[60%] top-0 h-full border-l-2 border-dashed border-white/40"></div>
+                        <span class="absolute left-[60%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">10m</span>
+
+                        <!-- Opp 22m -->
+                        <div class="absolute left-[78%] top-0 h-full border-l-2 border-white/40"></div>
+                        <span class="absolute left-[78%] bottom-2 ml-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest">22m</span>
+
+                        <!-- Opp Try Line -->
+                        <div class="absolute right-0 top-0 h-full border-r-4 border-white/50"></div>
+                        <span class="absolute right-3 bottom-2 text-[8px] md:text-[10px] font-bold text-white/50 tracking-widest uppercase">Try Line</span>
+                        
+                        <!-- Right Goal Post (H shape) -->
+                        <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 md:w-6 h-12 md:h-16 opacity-70">
+                            <div class="absolute top-0 w-full h-[3px] bg-white rounded-full"></div>
+                            <div class="absolute bottom-0 w-full h-[3px] bg-white rounded-full"></div>
+                            <div class="absolute left-1/2 top-0 h-full w-[3px] bg-white -translate-x-1/2"></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-zinc-500 text-xs mt-8 uppercase tracking-[0.2em] font-medium">Select a zone to view tactical objectives</p>
+            </div>
+
+            <!-- Dynamic Zone Details Container -->
+            <div id="zone-details-container"></div>
+        </div>
+
+        <!-- HANNIBAL DEFENSE TAB -->
+        <div id="tab-defense" class="hidden space-y-12 animate-fade-in">
+            <!-- Intro Section -->
+            <div class="flex flex-col md:flex-row gap-8 items-start">
+                <div class="w-full md:w-1/3">
+                    <h2 class="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase mb-2">THE HANNIBAL</h2>
+                    <p class="text-red-600 font-bold tracking-widest text-sm mb-6">DEFENSIVE PLAYBOOK</p>
+                    <p class="text-zinc-400 leading-relaxed text-sm">
+                        Inspired by the Battle of Cannae. We do not honey-pot around the ruck. 
+                        We set up wide, defend from the outside-in, and force the attack back into the heavy traffic in the middle of the pitch.
+                    </p>
+                </div>
+                
+                <!-- Golden Rules -->
+                <div class="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-red-950/20 border border-red-900/30 p-6">
+                        <h4 class="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 1</h4>
+                        <p class="text-white font-semibold text-sm">Defend the OUTSIDE SHOULDER.</p>
+                    </div>
+                    <div class="bg-red-950/20 border border-red-900/30 p-6">
+                        <h4 class="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 2</h4>
+                        <p class="text-white font-semibold text-sm">Line speed is dictated entirely by the SCOUT.</p>
+                    </div>
+                    <div class="bg-red-950/20 border border-red-900/30 p-6">
+                        <h4 class="text-red-500 font-bold text-xs tracking-widest mb-2">RULE 3</h4>
+                        <p class="text-white font-semibold text-sm">Stop the wrap-around, force them back inside.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Clarity -->
+            <div>
+                <h3 class="text-zinc-400 text-sm font-bold tracking-widest uppercase mb-6 border-b border-zinc-800 pb-2">
+                    Role Clarity & Responsibilities
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    <div class="bg-zinc-900 p-6 border-t-2 border-zinc-800 hover:border-red-600 transition-colors group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="lock" class="text-zinc-500 group-hover:text-red-600 transition-colors"></i>
+                            <div>
+                                <h4 class="text-white font-bold tracking-wider uppercase">THE GUARD</h4>
+                                <p class="text-zinc-500 text-xs">1st Defender / Pillar</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-3">
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Guard the immediate ruck fringes and call the "Lift".</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> The Insurance: If ball goes wide, run the "Flag Line" straight to the corner flag.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-zinc-900 p-6 border-t-2 border-zinc-800 hover:border-red-600 transition-colors group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="target" class="text-zinc-500 group-hover:text-red-600 transition-colors"></i>
+                            <div>
+                                <h4 class="text-white font-bold tracking-wider uppercase">THE WOLF</h4>
+                                <p class="text-zinc-500 text-xs">4th Defender (Inside Center)</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-3">
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Aggression. Do not wait.</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Ignore dummy runners and HUNT the "Ace" (opposition playmaker).</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Completely shut down their ability to move the ball wide.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-zinc-900 p-6 border-t-2 border-zinc-800 hover:border-red-600 transition-colors group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="crosshair" class="text-zinc-500 group-hover:text-red-600 transition-colors"></i>
+                            <div>
+                                <h4 class="text-white font-bold tracking-wider uppercase">THE SCOUT</h4>
+                                <p class="text-zinc-500 text-xs">Last Defender / Edge</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-3">
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Stand WIDE. Dictate the line speed for the whole team.</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Show the sideline to deny the step back inside.</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Force them to pass under pressure or cut back into the Wolf.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-zinc-900 p-6 border-t-2 border-zinc-800 hover:border-red-600 transition-colors group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i data-lucide="maximize" class="text-zinc-500 group-hover:text-red-600 transition-colors"></i>
+                            <div>
+                                <h4 class="text-white font-bold tracking-wider uppercase">PENDULUM</h4>
+                                <p class="text-zinc-500 text-xs">9, 10, 15</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-3">
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> 9: Sweeps shallow to clean up chip kicks or line breaks.</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> 10 & 15: Operate a deep pendulum to cover long kicks.</li>
+                            <li class="text-zinc-400 text-sm flex gap-2 items-start"><span class="text-red-600/50 mt-1">•</span> Do not shoot up early—prevents exposing the Kill Zone behind the line.</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Common Errors Warning -->
+            <div class="bg-zinc-900/50 border border-zinc-800 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
+                <div class="w-16 h-16 rounded-full bg-red-600/10 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" class="text-red-500" width="28" height="28"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold tracking-widest uppercase mb-2">System Vulnerabilities (Avoid)</h4>
+                    <p class="text-zinc-400 text-sm leading-relaxed">
+                        <span class="text-zinc-200 font-semibold">Honey-Potting:</span> Getting narrow around the ruck concedes massive edge overlaps. 
+                        <span class="text-zinc-200 font-semibold ml-4">Offside Starts:</span> Start legally behind the hindmost foot to read the attack.
+                        <span class="text-zinc-200 font-semibold ml-4">Disconnected Wolf:</span> If the Wolf shoots and the Scout stays deep, it creates a fatal dog-leg. Move as a connected wall.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript Data & Logic -->
+    <script>
+        const ZONES = {
+            red: {
+                id: 'red',
+                title: 'THE FORTRESS',
+                subtitle: 'RED',
+                color: 'bg-red-600',
+                textColor: 'text-red-500',
+                activeBg: 'bg-red-600/40',
+                inactiveBg: 'bg-red-900/20 hover:bg-red-900/40',
+                mindset: 'WAIT & EXIT',
+                territory: 'Own Try Line to Own 10m Line',
+                objective: 'Clean Exit. Set a strong platform. Risk-averse.',
+                lineout: '6+1 (Maul/Fake)',
+                rules: [
+                    'NO FORCED ERRORS: Do not play wide; no 50/50 passes.',
+                    'Set a strong platform with low-risk forward carries.',
+                    'Wait for the right moment to exit via box kick or clearance.'
+                ]
+            },
+            amber: {
+                id: 'amber',
+                title: 'THE BATTLEGROUND',
+                subtitle: 'TRANSITION',
+                color: 'bg-amber-500',
+                textColor: 'text-amber-500',
+                activeBg: 'bg-amber-500/40',
+                inactiveBg: 'bg-amber-900/20 hover:bg-amber-900/40',
+                mindset: 'PREPARE & TRANSITION',
+                territory: 'Own 10m Line to Opposition 22m',
+                objective: 'Force Errors & Transition quickly from defense to attack.',
+                lineout: '5-Man (U, T, N)',
+                rules: [
+                    'Defend aggressively to force a knock-on or penalty.',
+                    'Kick to compete (box kicks/high balls) to cause chaos.',
+                    'Once possession is won, transition quickly to attack.'
+                ]
+            },
+            green: {
+                id: 'green',
+                title: 'THE KILL ZONE',
+                subtitle: 'KILL',
+                color: 'bg-emerald-500',
+                textColor: 'text-emerald-500',
+                activeBg: 'bg-emerald-500/40',
+                inactiveBg: 'bg-emerald-900/20 hover:bg-emerald-900/40',
+                mindset: 'EXECUTE RUTHLESSLY',
+                territory: 'Opposition 22m to Try Line',
+                objective: 'POINTS (Try or Penalty). Secure possession first.',
+                lineout: '4-Man (Freddie)',
+                rules: [
+                    'NO FORCED ERRORS: Do not rush the score. Keep the ball.',
+                    'Red 5: Tight "Pick and Go" carries to suck in defenders.',
+                    'Attack the Edge: Use width if they narrow up.',
+                    'If defense holds, take the 3 points or pin them in the corner.'
+                ]
+            }
+        };
+
+        // UI State
+        let activeTab = 'pitch';
+        let activeZone = 'amber';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const pitchTab = document.getElementById('tab-pitch');
+            const defTab = document.getElementById('tab-defense');
+            const btnPitch = document.getElementById('btn-tab-pitch');
+            const btnDef = document.getElementById('btn-tab-defense');
+
+            if (tab === 'pitch') {
+                pitchTab.classList.remove('hidden');
+                defTab.classList.add('hidden');
+                
+                btnPitch.className = "text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-white border-red-600";
+                btnDef.className = "text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-zinc-500 border-transparent hover:text-zinc-300";
+            } else {
+                pitchTab.classList.add('hidden');
+                defTab.classList.remove('hidden');
+                
+                btnPitch.className = "text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-zinc-500 border-transparent hover:text-zinc-300";
+                btnDef.className = "text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-white border-red-600";
+            }
+        }
+
+        function setActiveZone(zoneId) {
+            activeZone = zoneId;
+            
+            // Update the pitch visual UI
+            ['red', 'amber', 'green'].forEach(id => {
+                const el = document.getElementById(`zone-${id}`);
+                const indicator = document.getElementById(`indicator-${id}`);
+                const label = document.getElementById(`label-${id}`);
+                const zoneData = ZONES[id];
+                
+                // Clear dynamic classes
+                el.classList.remove('z-10', 'z-0', ...zoneData.activeBg.split(' '), ...zoneData.inactiveBg.split(' '));
+                
+                if (id === activeZone) {
+                    el.classList.add(...zoneData.activeBg.split(' '), 'z-10');
+                    indicator.className = `absolute top-0 w-full h-1.5 transition-all duration-300 ${zoneData.color}`;
+                    label.className = `text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] scale-110 bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm`;
+                } else {
+                    el.classList.add(...zoneData.inactiveBg.split(' '), 'z-0');
+                    indicator.className = `absolute top-0 w-full h-1.5 transition-all duration-300 bg-transparent`;
+                    label.className = `text-xs md:text-sm font-bold tracking-[0.25em] transition-all duration-300 ${zoneData.textColor} opacity-80 bg-zinc-950/80 px-4 py-2 rounded-md border border-zinc-800/50 backdrop-blur-sm`;
+                }
+            });
+
+            renderZoneDetails(zoneId);
+        }
+
+        function renderZoneDetails(zoneId) {
+            const zone = ZONES[zoneId];
+            const container = document.getElementById('zone-details-container');
+            
+            const rulesHtml = zone.rules.map(rule => `
+                <li class="flex gap-4 p-4 bg-zinc-900/30 hover:bg-zinc-900/80 transition-colors border-l-2 border-transparent hover:border-zinc-700">
+                    <i data-lucide="arrow-right" class="${zone.textColor} shrink-0 mt-1" width="18" height="18"></i>
+                    <span class="text-zinc-300 text-sm md:text-base">${rule}</span>
+                </li>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="w-full mt-8 animate-fade-in">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-3 h-12 ${zone.color}"></div>
+                        <div>
+                            <h2 class="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">${zone.title}</h2>
+                            <p class="${zone.textColor} font-bold tracking-widest text-sm md:text-base">${zone.territory}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-12">
+                        <div class="col-span-1 space-y-6">
+                            <div class="bg-zinc-900/50 p-6 border-t border-zinc-800">
+                                <h3 class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">Mindset</h3>
+                                <p class="text-white text-xl font-bold">${zone.mindset}</p>
+                            </div>
+                            <div class="bg-zinc-900/50 p-6 border-t border-zinc-800">
+                                <h3 class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2">Primary Objective</h3>
+                                <p class="text-zinc-300 leading-relaxed">${zone.objective}</p>
+                            </div>
+                            <div class="bg-zinc-900/50 p-6 border-t border-zinc-800">
+                                <h3 class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-2 flex items-center gap-2">
+                                    <i data-lucide="flag" class="${zone.textColor}" width="14" height="14"></i> Lineout Call
+                                </h3>
+                                <p class="text-white font-bold">${zone.lineout}</p>
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 md:col-span-2">
+                            <h3 class="text-zinc-400 text-sm font-bold tracking-widest uppercase mb-6 border-b border-zinc-800 pb-2">
+                                Tactical Execution
+                            </h3>
+                            <ul class="space-y-4">
+                                ${rulesHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Re-initialize Lucide icons for newly injected HTML
+            lucide.createIcons();
+        }
+
+        // Initialize App on load
+        document.addEventListener("DOMContentLoaded", () => {
+            switchTab('pitch');
+            setActiveZone('amber');
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
