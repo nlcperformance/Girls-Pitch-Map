@@ -343,6 +343,10 @@
         // CHANGE YOUR PASSWORD HERE:
         const HUB_PASSWORD = "PAF2627"; 
 
+        // --- INACTIVITY TIMEOUT VARIABLES ---
+        const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes in milliseconds
+        let inactivityTimer;
+
         function handleLogin(event) {
             event.preventDefault();
             const input = document.getElementById('password-input').value.toUpperCase();
@@ -365,6 +369,49 @@
             lucide.createIcons();
             switchTab('pitch');
             setActiveZone('amber');
+
+            // Start tracking user activity for timeout once unlocked
+            startActivityTracking();
+        }
+
+        function lockApp() {
+            // Hide main app, show login screen
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            
+            // Remove auth token so they have to log in again
+            sessionStorage.removeItem('newmanAuth');
+            
+            // Clear input and errors, stop tracking to save memory
+            document.getElementById('password-input').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+            stopActivityTracking();
+        }
+
+        function resetTimer() {
+            clearTimeout(inactivityTimer);
+            // Set a new timer to lock the app after INACTIVITY_LIMIT
+            inactivityTimer = setTimeout(lockApp, INACTIVITY_LIMIT);
+        }
+
+        function startActivityTracking() {
+            // Start the countdown immediately
+            resetTimer();
+            // Listen for various user interactions across desktop and mobile
+            window.addEventListener('mousemove', resetTimer);
+            window.addEventListener('mousedown', resetTimer);
+            window.addEventListener('keypress', resetTimer);
+            window.addEventListener('touchstart', resetTimer);
+            window.addEventListener('scroll', resetTimer, true);
+        }
+
+        function stopActivityTracking() {
+            clearTimeout(inactivityTimer);
+            window.removeEventListener('mousemove', resetTimer);
+            window.removeEventListener('mousedown', resetTimer);
+            window.removeEventListener('keypress', resetTimer);
+            window.removeEventListener('touchstart', resetTimer);
+            window.removeEventListener('scroll', resetTimer, true);
         }
 
         function checkAuth() {
