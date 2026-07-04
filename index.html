@@ -38,47 +38,47 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-zinc-950 font-sans selection:bg-red-600/30 text-white pb-24">
+<body class="min-h-screen bg-zinc-950 font-sans selection:bg-red-600/30 text-white pb-24 relative">
 
-    <!-- Header & Navigation -->
-    <nav class="w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="bg-red-600 text-white font-black text-xl w-10 h-10 flex items-center justify-center rounded-sm">N</div>
+    <!-- LOGIN SCREEN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center p-6 animate-fade-in">
+        <div class="w-full max-w-md bg-[#0a0a0c] border border-zinc-800/80 rounded-xl p-8 shadow-2xl relative overflow-hidden">
+            <!-- Decorative accent -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+            
+            <div class="flex flex-col items-center mb-8 text-center">
+                <div class="bg-red-600 text-white font-black text-2xl w-14 h-14 flex items-center justify-center rounded-sm mb-4">N</div>
+                <h1 class="text-white font-bold tracking-widest text-lg uppercase">Newman Girls</h1>
+                <p class="text-zinc-500 text-xs tracking-widest uppercase mt-1">Tactical Hub Access</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
-                    <h1 class="text-white font-bold tracking-widest text-sm uppercase">Newman Girls</h1>
-                    <p class="text-zinc-500 text-xs tracking-widest uppercase">Tactical Hub</p>
+                    <input 
+                        type="password" 
+                        id="password-input" 
+                        placeholder="Enter Access Code" 
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-md px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all text-center tracking-widest uppercase font-bold"
+                        required
+                    >
                 </div>
-            </div>
-            
-            <div class="flex gap-8">
-                <button id="btn-tab-pitch" onclick="switchTab('pitch')" class="text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-white border-red-600">
-                    Pitch Map
+                <button 
+                    type="submit" 
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold tracking-widest uppercase py-3 rounded-md transition-colors"
+                >
+                    Unlock Hub
                 </button>
-                <button id="btn-tab-defense" onclick="switchTab('defense')" class="text-sm font-bold tracking-widest uppercase transition-colors h-20 border-b-2 text-zinc-500 border-transparent hover:text-zinc-300">
-                    Hannibal Def
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto px-6 py-12">
-        
-        <!-- PITCH MAP TAB -->
-        <div id="tab-pitch" class="space-y-4 animate-fade-in">
-            <div class="mb-8">
-                <h2 class="text-zinc-500 font-bold tracking-[0.2em] text-xs uppercase mb-2">Zone Management</h2>
-                <p class="text-zinc-300 max-w-2xl text-sm leading-relaxed">
-                    Our traffic light system dictates our speed of play, risk appetite, and tactical approach based on field position. 
-                    <span class="text-white font-semibold"> Low Error | High Patience | Ruthless Execution.</span>
+                <p id="login-error" class="text-red-500 text-xs font-bold tracking-widest uppercase text-center hidden mt-4 animate-fade-in">
+                    Incorrect Code. Try Again.
                 </p>
-            </div>
-            
-            <!-- Pitch Visual -->
-            <div class="w-full bg-[#0a0a0c] border border-zinc-800/80 rounded-xl p-6 md:p-10 flex flex-col items-center relative overflow-hidden shadow-2xl">
-                <div class="w-full max-w-5xl relative h-48 md:h-72 rounded-sm flex overflow-hidden bg-[#171a21] border-2 border-zinc-700/80 shadow-inner">
-                    
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER (Hidden by default) -->
+    <div id="main-app" class="hidden">
+        <!-- Header & Navigation -->
+        <nav class="w-full border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
                     <!-- Clickable Zones -->
                     <div id="zone-red" onclick="setActiveZone('red')" class="absolute top-0 h-full cursor-pointer transition-all duration-500 ease-in-out left-0 w-[40%] flex flex-col items-center justify-center text-center">
                         <div id="indicator-red" class="absolute top-0 w-full h-1.5 transition-all duration-300 bg-transparent"></div>
@@ -298,9 +298,47 @@
             </div>
         </div>
     </main>
+    </div> <!-- Close Main App Wrapper -->
 
     <!-- JavaScript Data & Logic -->
     <script>
+        // --- AUTHENTICATION LOGIC ---
+        // CHANGE YOUR PASSWORD HERE:
+        const HUB_PASSWORD = "PAF2627"; 
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const input = document.getElementById('password-input').value.toUpperCase();
+            const errorMsg = document.getElementById('login-error');
+
+            if (input === HUB_PASSWORD) {
+                // Save auth state to session storage (stays unlocked until tab is closed)
+                sessionStorage.setItem('newmanAuth', 'true');
+                unlockApp();
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('password-input').value = '';
+            }
+        }
+
+        function unlockApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            // Initialize the rest of the app now that it's visible
+            lucide.createIcons();
+            switchTab('pitch');
+            setActiveZone('amber');
+        }
+
+        function checkAuth() {
+            if (sessionStorage.getItem('newmanAuth') === 'true') {
+                unlockApp();
+            }
+            // Otherwise, login screen remains visible by default
+        }
+
+
+        // --- TACTICAL HUB LOGIC ---
         const ZONES = {
             red: {
                 id: 'red',
@@ -469,8 +507,8 @@
 
         // Initialize App on load
         document.addEventListener("DOMContentLoaded", () => {
-            switchTab('pitch');
-            setActiveZone('amber');
+            // First check if user is already authenticated
+            checkAuth();
             lucide.createIcons();
         });
     </script>
